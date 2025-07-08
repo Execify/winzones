@@ -47,6 +47,17 @@ jobs:
                     echo "has_changes=true" >> $GITHUB_OUTPUT
                   fi
 
+            - name: Create changeset
+              if: steps.changes.outputs.has_changes == 'true'
+              run: |
+                  cat > .changeset/update-cldr-${{ steps.cldr_version.outputs.version }}.md << EOF
+                  ---
+                  "winzones": minor
+                  ---
+
+                  Update timezone data to CLDR ${{ steps.cldr_version.outputs.version }}
+                  EOF
+
             - name: Commit and push changes
               if: steps.changes.outputs.has_changes == 'true'
               run: |
