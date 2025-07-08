@@ -1,13 +1,13 @@
 version: 2
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    groups:
-      cldr:
-        patterns:
-          - "cldr-*"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
+    - package-ecosystem: 'npm'
+      directory: '/'
+      schedule:
+          interval: 'weekly'
+      groups:
+          cldr:
+              patterns:
+                  - 'cldr-*'
+      commit-message:
+          prefix: 'chore'
+          include: 'scope'
