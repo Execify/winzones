@@ -6,6 +6,8 @@
 // Copyright © 1991-2025 Unicode, Inc. All rights reserved.
 // Distributed under the Terms of Use in https://www.unicode.org/copyright.html
 
+import { NonEmptyArray } from './types';
+
 export const ianaToWindowsMap: Record<string, string> = Object.assign(
     Object.create(null),
     {
@@ -456,7 +458,7 @@ export const ianaToWindowsMap: Record<string, string> = Object.assign(
     },
 );
 
-export const windowsToIanaMap: Record<string, string[]> = (() => {
+export const windowsToIanaMap: Record<string, NonEmptyArray<string>> = (() => {
     const reverseMap = Object.create(null);
     for (const [iana, windows] of Object.entries(ianaToWindowsMap)) {
         const existing = reverseMap[windows];

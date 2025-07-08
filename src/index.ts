@@ -1,4 +1,5 @@
 import { ianaToWindowsMap, windowsToIanaMap } from './timezone-data';
+import { NonEmptyArray } from './types';
 
 /**
  * Finds the Windows timezone equivalent for an IANA timezone identifier.
@@ -24,6 +25,6 @@ export function findWindowsFromIana(ianaTimezone: string): string | undefined {
  */
 export function findIanaFromWindows(
     windowsTimezone: string,
-): string[] | undefined {
+): NonEmptyArray<string> | undefined {
     return windowsToIanaMap[windowsTimezone];
 }
