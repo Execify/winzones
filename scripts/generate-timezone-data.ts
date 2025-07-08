@@ -3,73 +3,77 @@ import { join } from 'path';
 import * as cldrData from 'cldr-core/supplemental/windowsZones.json';
 import { Schema } from 'effect';
 
-const IanaWindowsMap = Schema.MapFromRecord({
-    key: Schema.String,
-    value: Schema.String,
+const WindowsZones = Schema.Struct({
+    supplemental: Schema.Struct({
+        version: Schema.Struct({
+            _unicodeVersion: Schema.String,
+            _cldrVersion: Schema.String,
+        }),
+        windowsZones: Schema.Struct({
+            mapTimezones: Schema.Array(
+                Schema.Struct({
+                    mapZone: Schema.Struct({
+                        windowsZone: Schema.String.pipe(
+                            Schema.propertySignature,
+                            Schema.fromKey('_other'),
+                        ),
+                        ianaZones: Schema.compose(
+                            Schema.Trim,
+                            Schema.split(' '),
+                        ).pipe(
+                            Schema.propertySignature,
+                            Schema.fromKey('_type'),
+                        ),
+                    }),
+                }),
+            ),
+        }),
+    }),
 });
-
-const ianaWindowsMapToJson = Schema.encodeSync(
-    Schema.parseJson(IanaWindowsMap),
-);
-
-interface MapZone {
-    _other: string; // Windows timezone name
-    _type: string; // IANA timezone(s) - space separated
-    _territory: string; // Territory code
-}
-
-interface WindowsZonesData {
-    supplemental: {
-        version: {
-            _unicodeVersion: string;
-            _cldrVersion: string;
-        };
-        windowsZones: {
-            mapTimezones: Array<{
-                mapZone: MapZone;
-            }>;
-        };
-    };
-}
+const parseWindowsZones = Schema.decodeUnknownSync(WindowsZones);
 
 function generateTimezoneData() {
     // Use the imported data
-    const data = cldrData as WindowsZonesData;
+    const data = parseWindowsZones(cldrData);
 
     // Create mappings
-    const ianaToWindows: typeof IanaWindowsMap.Type = new Map();
+    const ianaToWindows: Record<string, string> = {};
 
     // Process each mapping
-    for (const { mapZone } of data.supplemental.windowsZones.mapTimezones) {
-        const windowsZone = mapZone._other;
-        const ianaZones = mapZone._type.trim().split(' ');
-
+    for (const {
+        mapZone: { windowsZone, ianaZones },
+    } of data.supplemental.windowsZones.mapTimezones) {
         // For each IANA zone, map to Windows zone
         for (const ianaZone of ianaZones) {
-            if (!ianaZone) {
-                console.log('WIRD TIMEZONE', mapZone);
-            }
             if (
-                ianaToWindows.has(ianaZone) &&
-                ianaToWindows.get(ianaZone) !== windowsZone
+                ianaToWindows[ianaZone] &&
+                ianaToWindows[ianaZone] !== windowsZone
             ) {
                 throw new Error(
-                    `Duplicate mapping for IANA zone ${ianaZone}, maps to both ${ianaToWindows.get(ianaZone)} and ${windowsZone}`,
+                    `Duplicate mapping for IANA zone ${ianaZone}, maps to both ${ianaToWindows[ianaZone]} and ${windowsZone}`,
                 );
             }
-            ianaToWindows.set(ianaZone, windowsZone);
+            ianaToWindows[ianaZone] = windowsZone;
         }
     }
 
+    // Sort the entries alphabetically by IANA timezone name
+    const sortedEntries = Object.fromEntries(
+        Array.from(Object.entries(ianaToWindows)).sort(([a], [b]) =>
+            a.localeCompare(b),
+        ),
+    );
+
     // Generate the TypeScript file content
     const tsContent = `// Generated from CLDR data - do not edit manually
+// Unicode version: ${data.supplemental.version._unicodeVersion}
 // CLDR version: ${data.supplemental.version._cldrVersion}
 //
 // This data is derived from the Unicode Common Locale Data Repository (CLDR).
 // Copyright © 1991-${new Date().getFullYear()} Unicode, Inc. All rights reserved.
 // Distributed under the Terms of Use in https://www.unicode.org/copyright.html
 
-export const ianaToWindowsMap: Record<string, string> = Object.assign(Object.create(null), ${ianaWindowsMapToJson(ianaToWindows)});
+export const ianaToWindowsMap: Record<string, string> = Object.assign(Object.create(null), ${JSON.stringify(sortedEntries)});
 
 export const windowsToIanaMap: Record<string, string[]> = (() => {
     const reverseMap = Object.create(null);
