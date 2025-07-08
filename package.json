@@ -28,6 +28,9 @@
         "release": "npm run build && changeset publish",
         "prepublishOnly": "npm run build"
     },
+    "publishConfig": {
+        "provenance": true
+    },
     "keywords": [
         "timezone",
         "timezones",
